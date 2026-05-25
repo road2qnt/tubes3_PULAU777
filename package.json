@@ -1,0 +1,18 @@
+{
+  "name": "judol-detector",
+  "version": "1.0.0",
+  "description": "Browser extension untuk mendeteksi konten judi online (judol) menggunakan KMP, Boyer-Moore, Regex, dan Weighted Levenshtein",
+  "scripts": {
+    "dev": "vite build --watch",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.322",
+    "typescript": "^5.7.2",
+    "vite": "^6.3.5"
+  },
+  "dependencies": {
+    "tesseract.js": "^7.0.0"
+  }
+}
