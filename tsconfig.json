@@ -10,7 +10,8 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
     "useDefineForClassFields": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "types": ["chrome"]
   },
   "include": ["src"]
 }
