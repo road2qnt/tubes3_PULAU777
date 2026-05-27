@@ -34,7 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
              console.error(chrome.runtime.lastError);
              resultsContent.innerHTML = '<p class="empty-state">Content script tidak ditemukan. Coba refresh halaman.</p>';
           } else if (response) {
-             displayStats(response);
+             displayStats(response.stats ? response.stats : response);
           }
           loading.classList.add('hidden');
           resultsContent.classList.remove('hidden');

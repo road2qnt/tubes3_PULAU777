@@ -1,3 +1,4 @@
+import '../styles/content.css';
 import type { ExtMessage } from '../types';
 import { runScan, toggleBlur, toggleOcr } from './scanner';
 import { clearHighlights } from './highlighter';
