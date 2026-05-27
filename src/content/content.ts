@@ -1,47 +1,60 @@
-import { runScan, startObserver, toggleBlur, toggleOcr } from './scanner';
-import { setupTooltipListeners } from './tooltip';
 import type { ExtMessage } from '../types';
+import { runScan, toggleBlur, toggleOcr } from './scanner';
+import { clearHighlights } from './highlighter';
 
-// Initialize features
-setupTooltipListeners();
+async function init(): Promise<void> {
+  chrome.storage.local.get(['blurEnabled', 'ocrEnabled', 'autoScan'], (data) => {
+    if (data['blurEnabled']) toggleBlur(true);
+    if (data['ocrEnabled']) toggleOcr(true);
 
-// Load initial states and start
-chrome.storage.local.get(['blurEnabled', 'ocrEnabled'], (data) => {
-  if (data.blurEnabled) {
-    toggleBlur(true);
-  }
-  if (data.ocrEnabled) {
-    toggleOcr(true);
-  }
-  
-  // Start the mutation observer to automatically scan new content
-  startObserver();
-  
-  // Run initial scan
-  runScan().then((stats) => {
-    chrome.runtime.sendMessage({ type: 'SCAN_COMPLETE', stats }).catch(() => {});
+    if (data['autoScan'] !== false) {
+      runScan()
+        .then((stats) => {
+          chrome.runtime.sendMessage({ type: 'SCAN_COMPLETE', stats }).catch(() => {});
+        })
+        .catch((err) => console.error('[JudolDetector] Auto-scan error:', err));
+    }
   });
+}
+
+chrome.runtime.onMessage.addListener((msg: ExtMessage, _sender, sendResponse) => {
+  switch (msg.type) {
+    case 'TRIGGER_SCAN': {
+      runScan()
+        .then((stats) => {
+          chrome.runtime.sendMessage({ type: 'SCAN_COMPLETE', stats }).catch(() => {});
+          sendResponse({ ok: true, stats });
+        })
+        .catch((err) => {
+          console.error('[JudolDetector] Scan error:', err);
+          sendResponse({ ok: false, error: String(err) });
+        });
+      return true;
+    }
+
+    case 'CLEAR_HIGHLIGHTS': {
+      clearHighlights();
+      sendResponse({ ok: true });
+      break;
+    }
+
+    case 'TOGGLE_BLUR': {
+      toggleBlur(msg.enabled);
+      chrome.storage.local.set({ blurEnabled: msg.enabled });
+      sendResponse({ ok: true });
+      break;
+    }
+
+    case 'TOGGLE_OCR': {
+      toggleOcr(msg.enabled);
+      chrome.storage.local.set({ ocrEnabled: msg.enabled });
+      sendResponse({ ok: true });
+      break;
+    }
+
+    default:
+      break;
+  }
 });
 
-// Listen for messages from popup
-chrome.runtime.onMessage.addListener((msg: ExtMessage, _sender, sendResponse) => {
-  if (msg.type === 'TRIGGER_SCAN') {
-    runScan().then(stats => {
-      chrome.runtime.sendMessage({ type: 'SCAN_COMPLETE', stats }).catch(() => {});
-      sendResponse(stats);
-    });
-    return true; // Keep the message channel open for async response
-  }
-  
-  if (msg.type === 'TOGGLE_BLUR') {
-    toggleBlur(msg.enabled);
-    sendResponse({ ok: true });
-    return false;
-  }
-  
-  if (msg.type === 'TOGGLE_OCR') {
-    toggleOcr(msg.enabled);
-    sendResponse({ ok: true });
-    return false;
-  }
-});
+init();
