@@ -55,8 +55,6 @@ function getWorker(): Promise<TesseractWorker> {
 async function extractTextFromImage(img: HTMLImageElement): Promise<string> {
   const src = img.src || img.currentSrc;
   if (!src) return '';
-
-  // Pakai cache kalau sudah pernah di-scan
   if (_ocrCache.has(src)) return _ocrCache.get(src)!;
 
   try {
@@ -90,7 +88,6 @@ function matchTextAgainstKeywords(text: string, keywords: string[]): string[] {
       continue;
     }
 
-    // Fuzzy fallback
     const fuzzy = runLevenshtein(text, kw);
     if (fuzzy && fuzzy.count > 0) {
       matched.add(kw);
@@ -119,7 +116,6 @@ export async function ocrScanAllImages(
   censor = false
 ): Promise<OcrImageResult[]> {
   const images = Array.from(document.querySelectorAll<HTMLImageElement>('img'));
-  // Filter gambar yang terlalu kecil (kemungkinan icon/dekorasi)
   const candidates = images.filter((img) => {
     const w = img.naturalWidth || img.width;
     const h = img.naturalHeight || img.height;

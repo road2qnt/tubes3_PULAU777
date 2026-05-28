@@ -1,11 +1,10 @@
-import { defineConfig } from 'vite';
+import { defineConfig, build } from 'vite';
 import { resolve } from 'path';
-import { copyFileSync, mkdirSync } from 'fs';
+import { copyFileSync, mkdirSync, rmSync, cpSync } from 'fs';
 
-// Plugin untuk flatten HTML output ke dist/
-function flattenHtmlPlugin() {
+function extensionPlugin() {
   return {
-    name: 'flatten-html',
+    name: 'extension-plugin',
     closeBundle() {
       try {
         mkdirSync(resolve(__dirname, 'dist'), { recursive: true });
@@ -14,35 +13,85 @@ function flattenHtmlPlugin() {
           resolve(__dirname, 'dist/popup.html')
         );
       } catch {
-        // file might not exist on first pass
+      }
+
+      try {
+        cpSync(resolve(__dirname, 'src/algorithms'), resolve(__dirname, 'dist/algorithms'), { recursive: true });
+      } catch {
       }
     },
   };
 }
 
-export default defineConfig({
-  build: {
-    outDir: 'dist',
-    emptyOutDir: true,
-    rollupOptions: {
-      input: {
-        content: resolve(__dirname, 'src/content/content.ts'),
-        popup: resolve(__dirname, 'src/popup/popup.html'),
-        background: resolve(__dirname, 'src/background/background.ts'),
-      },
-      output: {
-        entryFileNames: '[name].js',
-        chunkFileNames: 'chunks/[name]-[hash].js',
-        assetFileNames: 'assets/[name].[ext]',
-      },
-    },
-    target: 'es2022',
-  },
-  resolve: {
+const isSubBuild = process.env.SUB_BUILD === 'true';
+
+export default defineConfig(async ({ command }) => {
+  const resolveConfig = {
     alias: {
       '@': resolve(__dirname, 'src'),
     },
-  },
-  publicDir: 'public',
-  plugins: [flattenHtmlPlugin()],
+  };
+
+  if (command === 'build' && !isSubBuild) {
+    process.env.SUB_BUILD = 'true';
+    
+    try {
+      rmSync(resolve(__dirname, 'dist'), { recursive: true, force: true });
+    } catch {}
+    
+    await build({
+      configFile: false,
+      resolve: resolveConfig,
+      build: {
+        outDir: 'dist',
+        emptyOutDir: false,
+        target: 'es2022',
+        sourcemap: true,
+        rollupOptions: {
+          input: resolve(__dirname, 'src/background/background.ts'),
+          output: { entryFileNames: 'background.js' }
+        }
+      }
+    });
+
+    await build({
+      configFile: false,
+      resolve: resolveConfig,
+      build: {
+        outDir: 'dist',
+        emptyOutDir: false,
+        target: 'es2022',
+        sourcemap: true,
+        rollupOptions: {
+          input: resolve(__dirname, 'src/content/content.ts'),
+          output: { 
+            entryFileNames: 'content.js',
+            assetFileNames: 'assets/[name].[ext]'
+          }
+        }
+      }
+    });
+  }
+
+  return {
+    resolve: resolveConfig,
+    publicDir: !isSubBuild ? 'public' : false,
+    build: {
+      outDir: 'dist',
+      emptyOutDir: false,
+      target: 'es2022',
+    sourcemap: true,
+      rollupOptions: {
+        input: {
+          popup: resolve(__dirname, 'src/popup/popup.html'),
+        },
+        output: {
+          entryFileNames: '[name].js',
+          chunkFileNames: 'chunks/[name]-[hash].js',
+          assetFileNames: 'assets/[name].[ext]',
+        },
+      },
+    },
+    plugins: [extensionPlugin()],
+  };
 });

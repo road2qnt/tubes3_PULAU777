@@ -1,6 +1,41 @@
-slot
-slot gacor
-gacor
+# === BASE WORDS (regex appends \d* — so "pulau" matches pulau777, pulau888, etc.) ===
+pulau
+zeus
+olympus
+mahjong
+bonanza
+pragmatic
+# === EXPLICIT SITE NAME VARIANTS ===
+pulau777
+pulau 777
+pulau777.com
+# === COMPOUND GAMBLING KEYWORDS (no space between words) ===
+zeusgacor
+zeusslot
+slotgacor
+slotmaxwin
+gacorslot
+gacormaxwin
+maxwinslot
+judionline
+casinoonline
+slotthailand
+slotolympus
+slotpragmatic
+slotbonanza
+mahjongways
+mahjongslot
+olympusgacor
+olympusslot
+bonanzaslot
+pragmaticslot
+scatterhitam
+scattermerah
+# === CAMBODIAN / THAI / INTERNATIONAL GAMBLING SITE PATTERNS ===
+khmer
+cambo
+kamboja
+# === SLOT GACOR KEYWORDS ===
 maxwin
 scatter
 scatter hitam

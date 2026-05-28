@@ -19,5 +19,11 @@
       "css": ["assets/content.css"],
       "run_at": "document_idle"
     }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["keywords/keywords.txt"],
+      "matches": ["<all_urls>"]
+    }
   ]
 }
