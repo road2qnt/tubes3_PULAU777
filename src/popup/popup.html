@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PULAU777 Scanner</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h2>Scanner Judol</h2>
+      <span class="badge">PULAU777</span>
+    </div>
+    
+    <div class="control-group">
+      <label for="algorithm">Pilih Algoritma:</label>
+      <select id="algorithm">
+        <option value="KMP">Knuth-Morris-Pratt (KMP)</option>
+        <option value="BoyerMoore">Boyer-Moore (BM)</option>
+        <option value="RabinKarp">Rabin-Karp</option>
+        <option value="AhoCorasick">Aho-Corasick</option>
+        <option value="Regex">Regular Expression</option>
+        <option value="Levenshtein">Weighted Levenshtein</option>
+        <option value="OCR">OCR (Tesseract)</option>
+      </select>
+    </div>
+
+    <div class="control-group">
+      <label class="toggle-container">
+        <input type="checkbox" id="blur-toggle">
+        <span class="toggle-slider"></span>
+        <span class="toggle-label">Sensor / Blur</span>
+      </label>
+      <label class="toggle-container">
+        <input type="checkbox" id="ocr-toggle">
+        <span class="toggle-slider"></span>
+        <span class="toggle-label">Aktifkan OCR</span>
+      </label>
+    </div>
+    
+    <button id="scan-btn" class="primary-btn">Scan Halaman Ini</button>
+    
+    <div class="results-container">
+      <h3>Hasil Scan</h3>
+      <div id="loading" class="hidden">Scanning...</div>
+      <div id="results-content">
+        <p class="empty-state">Belum ada hasil. Klik Scan.</p>
+      </div>
+    </div>
+  </div>
+  <script type="module" src="popup.ts"></script>
+</body>
+</html>
