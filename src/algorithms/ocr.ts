@@ -42,6 +42,20 @@ function getWorker(): Promise<TesseractWorker> {
   return _workerPromise;
 }
 
+function getBase64FromImage(img: HTMLImageElement): string | null {
+  try {
+    const canvas = document.createElement("canvas");
+    canvas.width = img.naturalWidth || img.width;
+    canvas.height = img.naturalHeight || img.height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+    ctx.drawImage(img, 0, 0);
+    return canvas.toDataURL("image/png");
+  } catch (err) {
+    return null; 
+  }
+}
+
 function fetchImageViaBackground(url: string): Promise<string> {
   return new Promise((resolve, reject) => {
     chrome.runtime.sendMessage(
@@ -84,24 +98,18 @@ async function extractTextFromImage(img: HTMLImageElement): Promise<string> {
   if (_ocrCache.has(src)) return _ocrCache.get(src)!;
   try {
     const worker = await getWorker();
-    let target: string | HTMLImageElement = img;
-    try {
-      const dataUrl =
-        await fetchImageViaBackground(src);
-      target = dataUrl;
-      console.log(
-        "[OCR] fetched via background:",
-        src
-      );
-    } catch (err) {
-      console.warn(
-        "[OCR] background fetch failed:",
-        src,
-        err
-      );
+    
+    let target = getBase64FromImage(img);
+    
+    if (!target) {
+      try {
+        target = await fetchImageViaBackground(src);
+      } catch (err) {
+        console.warn("[OCR] background fetch failed:", src, err);
+        throw new Error("Gagal mengambil data gambar untuk OCR");
+      }
     }
-    const result =
-      await worker.recognize(target);
+    const result = await worker.recognize(target);
     const text = result.data.text.trim();
 
     console.log(
