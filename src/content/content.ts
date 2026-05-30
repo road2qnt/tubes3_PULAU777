@@ -113,7 +113,6 @@ async function init(): Promise<void> {
     if (data['ocrEnabled']) toggleOcr(true);
 
     if (data['autoScan'] !== false) {
-      // startObserver();  dimatikan karena sensor image jadi kedap-kedip
       fullScan()
         .then((stats) => {
           if (chrome.runtime?.id) {

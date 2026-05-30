@@ -1,15 +1,12 @@
-# === BASE WORDS (regex appends \d* — so "pulau" matches pulau777, pulau888, etc.) ===
 pulau
 zeus
 olympus
 mahjong
 bonanza
 pragmatic
-# === EXPLICIT SITE NAME VARIANTS ===
 pulau777
 pulau 777
 pulau777.com
-# === COMPOUND GAMBLING KEYWORDS (no space between words) ===
 zeusgacor
 zeusslot
 slotgacor
@@ -31,11 +28,9 @@ bonanzaslot
 pragmaticslot
 scatterhitam
 scattermerah
-# === CAMBODIAN / THAI / INTERNATIONAL GAMBLING SITE PATTERNS ===
 khmer
 cambo
 kamboja
-# === SLOT GACOR KEYWORDS ===
 maxwin
 scatter
 scatter hitam
@@ -440,3 +435,21 @@ situs casino online
 bandar casino online
 bandar togel online
 bandar slot online
+togel
+kakek gacor
+g.a.c.o.r
+g4c0r
+sl0t
+jvd1
+s.l.o.t
+l1nk 4lt3rn4t1f
+petir x1000
+petir x500
+petir merah
+qris instan
+qris 1 detik
+gatotkaca slot
+sbobet
+cmd368
+bebas ip
+perkalian paus

@@ -19,14 +19,22 @@ Ekstensi Google Chrome ini mengimplementasikan algoritma pencocokan string Knuth
 ## Langkah-langkah Build dan Cara Load Extension di Chrome
 
 Karena ekstensi ini tidak menggunakan modul yang perlu di-*compile*, Anda tidak perlu melakukan proses *build*. Anda bisa langsung memuat ekstensi ke dalam Chrome dengan cara berikut:
+1. Pastikan telah melakukan command berikut di terminal (pastikan dalam folder `tubes3_PULAU777`):
+    ```bash
+    npm install
+    npm install tesseract.js
+    npm run build
+    ```
+2. Pastikan seluruh file source code ekstensi (`manifest.json`, file HTML, CSS, JS) berada di dalam folder `dist/`.
 
-1. Pastikan seluruh file source code ekstensi (`manifest.json`, file HTML, CSS, JS) berada di dalam satu folder/direktori.
-2. Buka peramban Google Chrome.
-3. Ketik `chrome://extensions/` pada *address bar* (bilah alamat) dan tekan **Enter**.
-4. Aktifkan opsi **Developer mode** (Mode Pengembang) dengan mengklik tombol *toggle* di sudut kanan atas halaman.
-5. Tiga tombol baru akan muncul di kiri atas. Klik tombol **Load unpacked** (Muat yang tidak dikemas).
-6. Akan muncul jendela dialog pemilihan folder. Pilih folder tempat Anda menyimpan file ekstensi ini.
-7. Ekstensi berhasil dimuat dan ikon ekstensi akan muncul di bilah alat (toolbar) Chrome Anda.
+3. Buka peramban Google Chrome.
+4. Ketik `chrome://extensions/` pada *address bar* (bilah alamat) dan tekan **Enter**.
+5. Aktifkan opsi **Developer mode** (Mode Pengembang) dengan mengklik tombol *toggle* di sudut kanan atas halaman.
+6. Tiga tombol baru akan muncul di kiri atas. Klik tombol **Load unpacked** (Muat yang tidak dikemas).
+7. Akan muncul jendela dialog pemilihan folder.
+
+8. Pilih Folder dist
+9.  Ekstensi berhasil dimuat dan ikon ekstensi akan muncul di bilah alat (toolbar) Chrome Anda.
 
 ## Author
 ### **Anggota 1:**
