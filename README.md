@@ -33,7 +33,7 @@ Karena ekstensi ini tidak menggunakan modul yang perlu di-*compile*, Anda tidak 
 6. Tiga tombol baru akan muncul di kiri atas. Klik tombol **Load unpacked** (Muat yang tidak dikemas).
 7. Akan muncul jendela dialog pemilihan folder.
 
-8. Pilih Folder dist
+8. Pilih Folder `dist/`
 9.  Ekstensi berhasil dimuat dan ikon ekstensi akan muncul di bilah alat (toolbar) Chrome Anda.
 
 ## Author
