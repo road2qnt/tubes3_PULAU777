@@ -113,10 +113,15 @@ async function init(): Promise<void> {
     if (data['ocrEnabled']) toggleOcr(true);
 
     if (data['autoScan'] !== false) {
-      startObserver();
+      // startObserver();  dimatikan karena sensor image jadi kedap-kedip
       fullScan()
         .then((stats) => {
-          chrome.runtime.sendMessage({ type: 'SCAN_COMPLETE', stats }).catch(() => {});
+          if (chrome.runtime?.id) {
+            chrome.runtime.sendMessage({
+              type: 'SCAN_COMPLETE',
+              stats
+            }).catch(() => {});
+          }
         })
         .catch((err) => console.error('[JudolDetector] Auto-scan error:', err));
     }

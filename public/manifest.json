@@ -3,7 +3,7 @@
   "name": "Judol Detector",
   "version": "1.0.0",
   "description": "Deteksi konten judi online (judol) menggunakan KMP, Boyer-Moore, Regex, dan Weighted Levenshtein",
-  "permissions": ["storage", "activeTab"],
+  "permissions": ["storage", "activeTab", "tabs"],
   "host_permissions": ["<all_urls>"],
   "action": {
     "default_popup": "popup.html"
@@ -25,5 +25,9 @@
       "resources": ["keywords/keywords.txt"],
       "matches": ["<all_urls>"]
     }
-  ]
+  ],
+  "content_security_policy": {
+    "extension_pages":
+      "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+  }
 }

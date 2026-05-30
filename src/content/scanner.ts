@@ -90,6 +90,7 @@ export async function runScan(): Promise<ScanStats> {
 
   if (blurEnabled) setBlurMode(true);
   if (ocrEnabled) {
+    console.log('[OCR] ocrEnabled = true, mulai scan gambar');
     restoreCensoredImages(); clearOcrCache();
     const ocrResults = await ocrScanAllImages(keywords, true);
     stats.ocrImages = ocrResults;

@@ -14,3 +14,31 @@ chrome.runtime.onInstalled.addListener(() => {
     if (Object.keys(toSet).length > 0) chrome.storage.local.set(toSet);
   });
 });
+
+chrome.runtime.onMessage.addListener(
+  (message, sender, sendResponse) => {
+    if (message.type !== "FETCH_IMAGE") {
+      return;
+    }
+    (async () => {
+      try {
+        const response = await fetch(message.url);
+        const blob = await response.blob();
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          sendResponse({
+            success: true,
+            dataUrl: reader.result
+          });
+        };
+        reader.readAsDataURL(blob);
+      } catch (err) {
+        sendResponse({
+          success: false,
+          error: String(err)
+        });
+      }
+    })();
+    return true;
+  }
+);

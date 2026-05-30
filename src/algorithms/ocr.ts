@@ -3,6 +3,7 @@ import { runKMP } from './kmp';
 import { runBoyerMoore } from './boyer-moore';
 import { runRegex } from './regex-matcher';
 import { runLevenshtein } from './weighted-levenshtein';
+import { createWorker } from 'tesseract.js'
 
 const _censoredImages = new Map<
   HTMLImageElement,
@@ -11,61 +12,110 @@ const _censoredImages = new Map<
 
 const _ocrCache = new Map<string, string>();
 
-declare const Tesseract: {
-  recognize(
-    image: string | HTMLImageElement | Blob,
-    lang: string,
-    options?: { workerPath?: string; langPath?: string; corePath?: string }
-  ): Promise<{ data: { text: string } }>;
-  createWorker(options?: Record<string, unknown>): Promise<TesseractWorker>;
-};
+console.log(
+  "runtime:",
+  chrome.runtime.getURL("")
+);
 
-interface TesseractWorker {
-  loadLanguage(lang: string): Promise<void>;
-  initialize(lang: string): Promise<void>;
-  recognize(image: string | HTMLImageElement): Promise<{ data: { text: string } }>;
-  terminate(): Promise<void>;
-}
+type TesseractWorker = Awaited<ReturnType<typeof createWorker>>;
 
 let _workerPromise: Promise<TesseractWorker> | null = null;
 
 function getWorker(): Promise<TesseractWorker> {
-  if (_workerPromise) return _workerPromise;
+  console.log("[OCR] getWorker called");
+  if (_workerPromise) {
+    console.log("[OCR] reuse worker");
+    return _workerPromise;
+  }
 
   _workerPromise = (async () => {
-    const workerPath = chrome.runtime.getURL('tesseract-worker.js');
-    const langPath = 'https://tessdata.projectnaptha.com/4.0.0';
-    const corePath = 'https://cdn.jsdelivr.net/npm/tesseract.js-core@4/tesseract-core.wasm.js';
-
-    const worker: TesseractWorker = await Tesseract.createWorker({
-      workerPath,
-      langPath,
-      corePath,
-      logger: () => {}, // silent
-    });
-
-    await worker.loadLanguage('eng');
-    await worker.initialize('eng');
-    return worker;
+    console.log("[OCR] before createWorker");
+    try {
+      const worker = await createWorker("eng");
+      console.log("[OCR] worker created");
+      return worker;
+    } catch (err) {
+      console.error("[OCR] createWorker failed", err);
+      throw err;
+    }
   })();
-
   return _workerPromise;
 }
 
+function fetchImageViaBackground(url: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    chrome.runtime.sendMessage(
+      {
+        type: "FETCH_IMAGE",
+        url
+      },
+      (response) => {
+        if (chrome.runtime.lastError) {
+          reject(chrome.runtime.lastError);
+          return;
+        }
+        if (!response?.success) {
+          reject(response?.error);
+          return;
+        }
+        resolve(response.dataUrl);
+      }
+    );
+  });
+}
+
 async function extractTextFromImage(img: HTMLImageElement): Promise<string> {
+  console.log("[OCR] extractTextFromImage");
   const src = img.src || img.currentSrc;
   if (!src) return '';
-  if (_ocrCache.has(src)) return _ocrCache.get(src)!;
 
+  if (src.startsWith("data:image/svg+xml")) {
+    _ocrCache.set(src, "");
+    return "";
+  }
+  try {
+    const url = new URL(src);
+    if (url.pathname.toLowerCase().endsWith(".svg")) {
+      _ocrCache.set(src, "");
+      return "";
+    }
+  } catch {}
+
+  if (_ocrCache.has(src)) return _ocrCache.get(src)!;
   try {
     const worker = await getWorker();
-    const result = await worker.recognize(img);
+    let target: string | HTMLImageElement = img;
+    try {
+      const dataUrl =
+        await fetchImageViaBackground(src);
+      target = dataUrl;
+      console.log(
+        "[OCR] fetched via background:",
+        src
+      );
+    } catch (err) {
+      console.warn(
+        "[OCR] background fetch failed:",
+        src,
+        err
+      );
+    }
+    const result =
+      await worker.recognize(target);
     const text = result.data.text.trim();
+
+    console.log(
+      '[JudolDetector OCR] Hasil teks:',
+      src.slice(0, 60),
+      '->',
+      text.slice(0, 80)
+    );
+
     _ocrCache.set(src, text);
     return text;
   } catch (err) {
     console.warn('[JudolDetector OCR] Gagal baca gambar:', src, err);
-    _ocrCache.set(src, ''); // cache string kosong agar tidak retry terus
+    _ocrCache.set(src, '');
     return '';
   }
 }
@@ -75,19 +125,16 @@ function matchTextAgainstKeywords(text: string, keywords: string[]): string[] {
 
   for (const kw of keywords) {
     if (kw.length < 2) continue;
-
     const kmpResult = runKMP(text, kw);
     const bmResult = runBoyerMoore(text, kw);
     const regexResult = runRegex(text, kw);
-
     const exactHit = kmpResult.count > 0 || bmResult.count > 0;
     const regexHit = regexResult.count > 0;
-
+    
     if (exactHit || regexHit) {
       matched.add(kw);
       continue;
     }
-
     const fuzzy = runLevenshtein(text, kw);
     if (fuzzy && fuzzy.count > 0) {
       matched.add(kw);
@@ -116,24 +163,31 @@ export async function ocrScanAllImages(
   censor = false
 ): Promise<OcrImageResult[]> {
   const images = Array.from(document.querySelectorAll<HTMLImageElement>('img'));
+  console.log("[OCR] Total img:", images.length);
+  
   const candidates = images.filter((img) => {
     const w = img.naturalWidth || img.width;
     const h = img.naturalHeight || img.height;
+    console.log(
+      img.src,
+      img.naturalWidth,
+      img.naturalHeight
+    );
     return w >= 50 && h >= 50;
   });
+  console.log("[OCR] Candidates:", candidates.length);
 
   const results: OcrImageResult[] = [];
 
   for (const img of candidates) {
+    console.log("[OCR] Scan image:", img.src);
     const t0 = performance.now();
     const extractedText = await extractTextFromImage(img);
     const matchedKeywords = extractedText.length > 0
       ? matchTextAgainstKeywords(extractedText, keywords)
       : [];
     const executionTimeMs = performance.now() - t0;
-
     const hasmatch = matchedKeywords.length > 0;
-
     if (hasmatch && censor) {
       censorImage(img);
     }
@@ -173,8 +227,8 @@ export async function terminateOcrWorker(): Promise<void> {
   try {
     const worker = await _workerPromise;
     await worker.terminate();
-  } catch (_) {}
-  finally {
+  } catch {
+  } finally {
     _workerPromise = null;
   }
 }
