@@ -12,13 +12,45 @@ export function highlightTextNode(textNode: Text, result: MatchResult): void {
   type Segment = { start: number; end: number; isMatch: boolean };
   const segments: Segment[] = [];
   let lastEnd = 0;
-  const sortedPositions = [...new Set(result.positions)].sort((a, b) => a - b);
 
-  for (const pos of sortedPositions) {
-    const end = pos + kw.length;
-    if (pos < lastEnd) continue;
-    if (pos > lastEnd) segments.push({ start: lastEnd, end: pos, isMatch: false });
-    segments.push({ start: pos, end, isMatch: true });
+  const posLenPairs = result.positions.map((pos, i) => ({
+    pos,
+    len: result.matchLengths ? result.matchLengths[i] : kw.length
+  }));
+
+  posLenPairs.sort((a, b) => a.pos - b.pos);
+
+  const uniquePairs = [];
+  const seen = new Set<number>();
+  for (const pair of posLenPairs) {
+    if (!seen.has(pair.pos)) {
+      seen.add(pair.pos);
+      uniquePairs.push(pair);
+    }
+  }
+
+  for (const pair of uniquePairs) {
+    let start = pair.pos;
+    let end = pair.pos + pair.len;
+
+    // Expand boundaries to include joined alphanumeric characters (e.g., "slot" -> "slot777")
+    while (start > 0 && /[a-zA-Z0-9_]/.test(text[start - 1])) {
+      start--;
+    }
+    while (end < text.length && /[a-zA-Z0-9_]/.test(text[end])) {
+      end++;
+    }
+
+    if (start < lastEnd) {
+      if (segments.length > 0 && segments[segments.length - 1].isMatch) {
+        segments[segments.length - 1].end = Math.max(segments[segments.length - 1].end, end);
+        lastEnd = segments[segments.length - 1].end;
+      }
+      continue;
+    }
+
+    if (start > lastEnd) segments.push({ start: lastEnd, end: start, isMatch: false });
+    segments.push({ start, end, isMatch: true });
     lastEnd = end;
   }
   if (lastEnd < text.length) segments.push({ start: lastEnd, end: text.length, isMatch: false });

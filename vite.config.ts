@@ -14,11 +14,6 @@ function extensionPlugin() {
         );
       } catch {
       }
-
-      try {
-        cpSync(resolve(__dirname, 'src/algorithms'), resolve(__dirname, 'dist/algorithms'), { recursive: true });
-      } catch {
-      }
     },
   };
 }
@@ -66,7 +61,8 @@ export default defineConfig(async ({ command }) => {
           input: resolve(__dirname, 'src/content/content.ts'),
           output: { 
             entryFileNames: 'content.js',
-            assetFileNames: 'assets/[name].[ext]'
+            assetFileNames: 'assets/[name].[ext]',
+            inlineDynamicImports: true
           }
         }
       }

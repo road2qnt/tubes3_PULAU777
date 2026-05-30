@@ -11,6 +11,7 @@ export interface MatchResult {
   keyword: string;
   algorithm: AlgorithmName;
   positions: number[];
+  matchLengths?: number[];
   count: number;
   similarity?: number;
   executionTimeMs: number;

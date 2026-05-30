@@ -11,63 +11,54 @@ const _censoredImages = new Map<
 
 const _ocrCache = new Map<string, string>();
 
-declare const Tesseract: {
-  recognize(
-    image: string | HTMLImageElement | Blob,
-    lang: string,
-    options?: { workerPath?: string; langPath?: string; corePath?: string }
-  ): Promise<{ data: { text: string } }>;
-  createWorker(options?: Record<string, unknown>): Promise<TesseractWorker>;
-};
+let _schedulerPromise: Promise<any> | null = null;
 
-interface TesseractWorker {
-  loadLanguage(lang: string): Promise<void>;
-  initialize(lang: string): Promise<void>;
-  recognize(image: string | HTMLImageElement): Promise<{ data: { text: string } }>;
-  terminate(): Promise<void>;
-}
+function getScheduler(): Promise<any> {
+  if (_schedulerPromise) return _schedulerPromise;
 
-let _workerPromise: Promise<TesseractWorker> | null = null;
+  _schedulerPromise = (async () => {
+    const Tesseract = await import('tesseract.js');
+    const scheduler = Tesseract.createScheduler();
 
-function getWorker(): Promise<TesseractWorker> {
-  if (_workerPromise) return _workerPromise;
-
-  _workerPromise = (async () => {
     const workerPath = chrome.runtime.getURL('tesseract-worker.js');
     const langPath = 'https://tessdata.projectnaptha.com/4.0.0';
     const corePath = 'https://cdn.jsdelivr.net/npm/tesseract.js-core@4/tesseract-core.wasm.js';
 
-    const worker: TesseractWorker = await Tesseract.createWorker({
-      workerPath,
-      langPath,
-      corePath,
-      logger: () => {}, // silent
-    });
-
-    await worker.loadLanguage('eng');
-    await worker.initialize('eng');
-    return worker;
+    // Buat pekerja berdasarkan ketersediaan core CPU untuk Multithreading
+    const numWorkers = Math.min(4, navigator.hardwareConcurrency || 2);
+    for (let i = 0; i < numWorkers; i++) {
+      // Tesseract.js v5+ menggabungkan loadLanguage dan initialize ke dalam parameter createWorker
+      const worker = await Tesseract.createWorker('eng', 1, {
+        workerPath,
+        langPath,
+        corePath,
+        logger: () => {}, // silent
+      });
+      scheduler.addWorker(worker);
+    }
+    return scheduler;
   })();
 
-  return _workerPromise;
+  return _schedulerPromise;
 }
 
-async function extractTextFromImage(img: HTMLImageElement): Promise<string> {
-  const src = img.src || img.currentSrc;
-  if (!src) return '';
-  if (_ocrCache.has(src)) return _ocrCache.get(src)!;
-
+async function getSafeImageData(img: HTMLImageElement): Promise<string | Blob | HTMLImageElement> {
   try {
-    const worker = await getWorker();
-    const result = await worker.recognize(img);
-    const text = result.data.text.trim();
-    _ocrCache.set(src, text);
-    return text;
-  } catch (err) {
-    console.warn('[JudolDetector OCR] Gagal baca gambar:', src, err);
-    _ocrCache.set(src, ''); // cache string kosong agar tidak retry terus
-    return '';
+    const canvas = document.createElement('canvas');
+    canvas.width = img.naturalWidth || img.width;
+    canvas.height = img.naturalHeight || img.height;
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      ctx.drawImage(img, 0, 0);
+      return canvas.toDataURL('image/jpeg', 0.8);
+    }
+  } catch (e) {
+    try {
+      const res = await fetch(img.src);
+      return await res.blob();
+    } catch (err) {}
   }
+  return img;
 }
 
 function matchTextAgainstKeywords(text: string, keywords: string[]): string[] {
@@ -123,14 +114,36 @@ export async function ocrScanAllImages(
   });
 
   const results: OcrImageResult[] = [];
+  if (candidates.length === 0) return results;
 
-  for (const img of candidates) {
-    const t0 = performance.now();
-    const extractedText = await extractTextFromImage(img);
+  const scheduler = await getScheduler();
+
+  const promises = candidates.map(async (img) => {
+    const src = img.src || img.currentSrc;
+    if (!src) return;
+
+    let extractedText = '';
+    let executionTimeMs = 0;
+
+    if (_ocrCache.has(src)) {
+      extractedText = _ocrCache.get(src)!;
+    } else {
+      try {
+        const t0 = performance.now();
+        const safeImage = await getSafeImageData(img);
+        const result = await scheduler.addJob('recognize', safeImage);
+        extractedText = result.data.text.trim();
+        executionTimeMs = performance.now() - t0;
+        _ocrCache.set(src, extractedText);
+      } catch (err) {
+        console.warn('[JudolDetector OCR] Gagal baca gambar:', src, err);
+        _ocrCache.set(src, '');
+      }
+    }
+
     const matchedKeywords = extractedText.length > 0
       ? matchTextAgainstKeywords(extractedText, keywords)
       : [];
-    const executionTimeMs = performance.now() - t0;
 
     const hasmatch = matchedKeywords.length > 0;
 
@@ -139,13 +152,16 @@ export async function ocrScanAllImages(
     }
 
     results.push({
-      src: img.src || img.currentSrc,
+      src,
       extractedText,
       matchedKeywords,
       executionTimeMs,
       censored: hasmatch && censor,
     });
-  }
+  });
+
+  // Eksekusi pekerjaan secara konkuren (multithreading)
+  await Promise.all(promises);
 
   return results;
 }
@@ -169,12 +185,12 @@ export function clearOcrCache(): void {
 }
 
 export async function terminateOcrWorker(): Promise<void> {
-  if (!_workerPromise) return;
+  if (!_schedulerPromise) return;
   try {
-    const worker = await _workerPromise;
-    await worker.terminate();
+    const scheduler = await _schedulerPromise;
+    await scheduler.terminate();
   } catch (_) {}
   finally {
-    _workerPromise = null;
+    _schedulerPromise = null;
   }
 }

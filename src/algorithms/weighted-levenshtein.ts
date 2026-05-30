@@ -36,20 +36,32 @@ export function similarity(s: string, t: string): number {
 export function levenshteinSearch(text: string, keyword: string, threshold = LEVENSHTEIN_THRESHOLD): { positions: number[]; bestSimilarity: number } {
   const tokenRegex = /\S+/g;
   const positions: number[] = [];
+  const matchLengths: number[] = [];
   let bestSimilarity = 0;
 
   let match: RegExpExecArray | null;
+  const kwLen = keyword.length;
+
   while ((match = tokenRegex.exec(text)) !== null) {
-    const score = similarity(match[0], keyword);
-    if (score >= threshold) { positions.push(match.index); if (score > bestSimilarity) bestSimilarity = score; }
+    const token = match[0];
+    // OPTIMASI MATEMATIS: Skip kalkulasi jika secara teori mustahil mencapai threshold
+    const maxPossibleSim = 1 - Math.abs(token.length - kwLen) / Math.max(token.length, kwLen);
+    if (maxPossibleSim < threshold) continue;
+
+    const score = similarity(token, keyword);
+    if (score >= threshold) { 
+      positions.push(match.index); 
+      matchLengths.push(match[0].length);
+      if (score > bestSimilarity) bestSimilarity = score; 
+    }
   }
-  return { positions, bestSimilarity };
+  return { positions, matchLengths, bestSimilarity };
 }
 
 export function runLevenshtein(text: string, keyword: string, threshold = LEVENSHTEIN_THRESHOLD): MatchResult | null {
   const start = performance.now();
-  const { positions, bestSimilarity } = levenshteinSearch(text, keyword, threshold);
+  const { positions, matchLengths, bestSimilarity } = levenshteinSearch(text, keyword, threshold);
   const end = performance.now();
   if (positions.length === 0) return null;
-  return { keyword, algorithm: 'Levenshtein', positions, count: positions.length, similarity: bestSimilarity, executionTimeMs: end - start };
+  return { keyword, algorithm: 'Levenshtein', positions, matchLengths, count: positions.length, similarity: bestSimilarity, executionTimeMs: end - start };
 }

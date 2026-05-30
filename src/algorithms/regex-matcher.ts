@@ -17,15 +17,17 @@ export function runRegex(text: string, keyword: string): MatchResult {
   const start = performance.now();
   const regex = buildKeywordRegex(keyword);
   const positions: number[] = [];
+  const matchLengths: number[] = [];
 
   let match: RegExpExecArray | null;
   while ((match = regex.exec(text)) !== null) {
     positions.push(match.index);
+    matchLengths.push(match[0].length);
     if (match[0].length === 0) regex.lastIndex++;
   }
 
   const end = performance.now();
-  return { keyword, algorithm: 'Regex', positions, count: positions.length, executionTimeMs: end - start };
+  return { keyword, algorithm: 'Regex', positions, matchLengths, count: positions.length, executionTimeMs: end - start };
 }
 
 export function runRegexAll(text: string, keywords: string[]): Map<string, MatchResult> {
