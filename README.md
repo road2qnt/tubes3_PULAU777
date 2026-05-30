@@ -61,7 +61,7 @@ Karena ekstensi ini tidak menggunakan modul yang perlu di-*compile*, Anda tidak 
 | 6 | Elemen DOM terdeteksi diberi highlight dan terhapus saat rescanning | ✓ | |
 | 7 | Tooltip muncul saat hover dengan informasi keyword, algoritma, kemunculan, dan waktu eksekusi | ✓ | |
 | 8 | Popup menampilkan statistik realtime (total keyword, perbandingan, waktu eksekusi, jumlah match) | ✓ | |
-| 9 | [Bonus] Membuat Video |  | |
+| 9 | [Bonus] Membuat Video |  | ✓ |
 | 10 | [Bonus] Implementasi Algoritma Aho-Corasick dan Rabin Karp | ✓ | |
 | 11 | [Bonus] Implementasi Censorship / Blur Teks | ✓ | |
 | 12 | [Bonus] Implementasi Optical Character Recognition pada Gambar | ✓ | |
